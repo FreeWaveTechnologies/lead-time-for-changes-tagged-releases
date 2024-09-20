@@ -130,7 +130,7 @@ function Main ([string] $ownerRepo,
                 $mergeDate = [datetime]::Parse($mergeDateOutput)
                 Write-Output "Merge date: $mergeDate"
 
-                # Get all tags
+                # Get all tags containing the commit
                 $tags = git tag --contains $commitHash
 
                 if ($tags) {
@@ -148,14 +148,14 @@ function Main ([string] $ownerRepo,
                             Write-Output "Tag date: $tagDate"
 
                             $timeDifference = $tagDate - $mergeDate
-                            Write-Output "Time difference for tag $tag: $timeDifference"
-                            Write-Output "Total hours for tag $tag: $($timeDifference.TotalHours)"
+                            Write-Output "Time difference for tag `${tag}: $timeDifference"
+                            Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
 
                             if ($timeDifference.TotalHours -gt 0) {
                                 $totalStagingHours += $timeDifference.TotalHours
                                 $prCounter++
                             } else {
-                                Write-Output "PR #$($pr.number): No positive time difference for tag $tag."
+                                Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
                             }
                         } else {
                             Write-Output "PR #$($pr.number): Tag date is null."
@@ -175,6 +175,7 @@ function Main ([string] $ownerRepo,
     # Output total staging hours and number of PRs processed
     Write-Output "Total staging hours: $totalStagingHours"
     Write-Output "Number of PRs processed with positive time differences: $prCounter"
+
 
 
 
