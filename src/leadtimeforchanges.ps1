@@ -109,6 +109,47 @@ function Main ([string] $ownerRepo,
         }
     }
 
+    # Get time between staging and prod deploys
+    $totalStagingHours = 0
+    Foreach ($pr in $prsResponse) {
+    Write-Output "Processing PR #$($pr.number)..."
+    # Get the commit hash from the PR
+    $commitHash = $pr.merge_commit_sha
+    Write-Output "Commit hash: $commitHash"
+
+    # Get the merge date of the commit
+    $mergeDate = git show -s --format=%ci $commitHash
+    $mergeDate = [datetime]::Parse($mergeDate)
+    Write-Output "Merge date: $mergeDate"
+
+    # Get the first tag containing the commit
+    $tagName = git tag --contains $commitHash | Select-Object -First 1
+    Write-Output "Tag name: $tagName"
+
+    if ($tagName) {
+        # Get the tag creation date
+        $tagDate = git log -1 --format=%ai $tagName
+        $tagDate = [datetime]::Parse($tagDate)
+        Write-Output "Tag date: $tagDate"
+
+        # Calculate the time difference between merge and tag
+        $timeDifference = $tagDate - $mergeDate
+        $totalStagingHours += $timeDifference.TotalHours
+        $prCounter++
+        
+        Write-Output "PR #$($pr.number): Time between merge and tag: $timeDifference"
+    } else {
+        Write-Output "PR #$($pr.number): No tag found containing the commit."
+        }
+    }   
+
+    if ($prCounter -gt 0) {
+        $averageStagingHours = $totalStagingHours / $prCounter
+        Write-Output "Average time between merge and tag for all PRs: $averagePRHours hours"
+    } else {
+        Write-Output "No PRs found with corresponding tags."
+    }
+
     #==========================================
     #Get workflow definitions from github
     $uri3 = "$apiUrl/repos/$owner/$repo/actions/workflows"
@@ -170,7 +211,7 @@ function Main ([string] $ownerRepo,
 
         Foreach ($run in $workflowRunsResponse.workflow_runs){
             #Count workflows that are completed, on the target branch, and were created within the day range we are looking at
-            if ($run.head_branch -eq $branch -and $run.created_at -gt (Get-Date).AddDays(-$numberOfDays))
+            if ($run.event -eq "release" -and $run.created_at -gt (Get-Date).AddDays(-$numberOfDays)) {
             {
                 #Write-Host "Adding item with status $($run.status), branch $($run.head_branch), created at $($run.created_at), compared to $((Get-Date).AddDays(-$numberOfDays))"
                 $workflowCounter++       
@@ -204,6 +245,7 @@ function Main ([string] $ownerRepo,
     
     #Aggregate the PR and workflow processing times to calculate the average number of hours 
     Write-Host "PR average time duration $($totalPRHours / $prCounter)"
+    Write-Host "Time commit spent in staging"
     Write-Host "Workflow average time duration $($totalAverageworkflowHours)"
     $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours)
     Write-Host "Lead time for changes in hours: $leadTimeForChangesInHours"
