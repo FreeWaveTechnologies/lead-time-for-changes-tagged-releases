@@ -241,9 +241,9 @@ function Main ([string] $ownerRepo,
     
     #Aggregate the PR and workflow processing times to calculate the average number of hours 
     Write-Host "PR average time duration $($totalPRHours / $prCounter)"
-    Write-Host "Time commit spent in staging"
+    Write-Host "Time commit spent in staging $($totalStagingHours)"
     Write-Host "Workflow average time duration $($totalAverageworkflowHours)"
-    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours)
+    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours) + ($totalStagingHours)
     Write-Host "Lead time for changes in hours: $leadTimeForChangesInHours"
 
     #==========================================

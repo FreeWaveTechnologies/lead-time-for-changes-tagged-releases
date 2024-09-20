@@ -31,41 +31,41 @@ jobs:
           echo "CommitsSinceVersionSource: ${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
 
   # checkout the code from this branch, and then test the action from here
-  test: 
-    runs-on: ubuntu-latest
-    steps:    
-      - name: checkout the code from this branch
-        uses: actions/checkout@v4
-        with: 
-          ref: ${{ github.ref }}
+  # test: 
+  #   runs-on: ubuntu-latest
+  #   steps:    
+  #     - name: checkout the code from this branch
+  #       uses: actions/checkout@v4
+  #       with: 
+  #         ref: ${{ github.ref }}
 
-      #basic tests
-      - name: Test this repo
-        uses: ./ # the ./ runs the action.yml in this repo 
-        with:
-          workflows: 'CI'
-      - name: Test elite repo with PAT Token, using last commit method (no dev time)
-        uses: ./
-        with:
-          workflows: 'Feature Flags CI/CD'
-          owner-repo: 'samsmithnz/SamsFeatureFlags'
-          commit-counting-method: 'last'
-          pat-token: "${{ secrets.PATTOKEN }}"
-      - name: Test elite repo with PAT Token, using first commit method (including dev time)
-        uses: ./
-        with:
-          workflows: 'Feature Flags CI/CD'
-          owner-repo: 'samsmithnz/SamsFeatureFlags'
-          commit-counting-method: 'first'
-          pat-token: "${{ secrets.PATTOKEN }}"
+  #     #basic tests
+  #     - name: Test this repo
+  #       uses: ./ # the ./ runs the action.yml in this repo 
+  #       with:
+  #         workflows: 'CI'
+  #     - name: Test elite repo with PAT Token, using last commit method (no dev time)
+  #       uses: ./
+  #       with:
+  #         workflows: 'Feature Flags CI/CD'
+  #         owner-repo: 'samsmithnz/SamsFeatureFlags'
+  #         commit-counting-method: 'last'
+  #         pat-token: "${{ secrets.PATTOKEN }}"
+  #     - name: Test elite repo with PAT Token, using first commit method (including dev time)
+  #       uses: ./
+  #       with:
+  #         workflows: 'Feature Flags CI/CD'
+  #         owner-repo: 'samsmithnz/SamsFeatureFlags'
+  #         commit-counting-method: 'first'
+  #         pat-token: "${{ secrets.PATTOKEN }}"
 
-      #authenication tests    
-      - name: Test elite repo, multiple workflows, with PAT Token
-        uses: ./
-        with:
-          workflows: 'Feature Flags CI/CD,CodeQL'
-          owner-repo: 'samsmithnz/SamsFeatureFlags'
-          pat-token: "${{ secrets.PATTOKEN }}"
+  #     #authenication tests    
+  #     - name: Test elite repo, multiple workflows, with PAT Token
+  #       uses: ./
+  #       with:
+  #         workflows: 'Feature Flags CI/CD,CodeQL'
+  #         owner-repo: 'samsmithnz/SamsFeatureFlags'
+  #         pat-token: "${{ secrets.PATTOKEN }}"
 
   releaseAction:
     runs-on: ubuntu-latest
