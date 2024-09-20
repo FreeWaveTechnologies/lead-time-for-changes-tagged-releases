@@ -211,7 +211,7 @@ function Main ([string] $ownerRepo,
 
         Foreach ($run in $workflowRunsResponse.workflow_runs){
             #Count workflows that are completed, on the target branch, and were created within the day range we are looking at
-            if ($run.event -eq "release" -and $run.created_at -gt (Get-Date).AddDays(-$numberOfDays)) {
+            if ($run.event -eq "release" -and $run.created_at -gt (Get-Date).AddDays(-$numberOfDays))
             {
                 #Write-Host "Adding item with status $($run.status), branch $($run.head_branch), created at $($run.created_at), compared to $((Get-Date).AddDays(-$numberOfDays))"
                 $workflowCounter++       
