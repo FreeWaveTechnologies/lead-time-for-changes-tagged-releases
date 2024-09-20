@@ -111,8 +111,6 @@ function Main ([string] $ownerRepo,
 
     # Get time between PR merge and release tags
     $totalStagingHours = 0
-    $prCounter = 0
-
     foreach ($pr in $prsResponse) {
         Write-Output "Processing PR #$($pr.number)..."
         $commitHash = $pr.merge_commit_sha
@@ -153,7 +151,6 @@ function Main ([string] $ownerRepo,
 
                             if ($timeDifference.TotalHours -gt 0) {
                                 $totalStagingHours += $timeDifference.TotalHours
-                                $prCounter++
                             } else {
                                 Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
                             }
