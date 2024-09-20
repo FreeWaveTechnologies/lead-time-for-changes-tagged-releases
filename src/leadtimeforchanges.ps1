@@ -151,14 +151,11 @@ function Main ([string] $ownerRepo,
                         Write-Output "PR #$($pr.number): Tag date is null."
                     }
                 }
-                } else {
-                    Write-Output "PR #$($pr.number): No tags found containing the commit."
-                }
             } else {
-                Write-Output "PR #$($pr.number): Merge date is null."
+                Write-Output "PR #$($pr.number): No tags found containing the commit."
             }
         } else {
-            Write-Output "PR #$($pr.number): Commit hash is null."
+            Write-Output "PR #$($pr.number): Merge date is null."
         }
     }
 
