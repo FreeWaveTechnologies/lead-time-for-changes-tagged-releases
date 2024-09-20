@@ -105,6 +105,8 @@ function Main ([string] $ownerRepo,
                 $prTimeDuration = New-TimeSpan –Start $startDate –End $mergedAt
                 $totalPRHours += $prTimeDuration.TotalHours
                 #Write-Host "$($pr.number) time duration in hours: $($prTimeDuration.TotalHours)"
+
+
             }
         }
     }
@@ -114,50 +116,41 @@ function Main ([string] $ownerRepo,
     foreach ($pr in $prsResponse) {
         Write-Output "Processing PR #$($pr.number)..."
         $commitHash = $pr.merge_commit_sha
+        $mergeDate = $pr.merged_at
         Write-Output "Commit hash: $commitHash"
+        Write-Output "Merge date: $mergeDate"
 
         if ($commitHash) {
-            # Attempt to get the merge date
-            $mergeDateOutput = git show -s --format=%ci $commitHash 2>&1
-            if ($mergeDateOutput -match "fatal:") {
-                Write-Output "PR #$($pr.number): Invalid commit hash - $commitHash"
-                continue
-            }
+            # Get all tags containing the commit
+            $tags = git tag --contains $commitHash
 
-            if ($mergeDateOutput) {
-                $mergeDate = [datetime]::Parse($mergeDateOutput)
-                Write-Output "Merge date: $mergeDate"
+            if ($tags) {
+                foreach ($tag in $tags) {
+                    Write-Output "Checking tag: $tag"
 
-                # Get all tags containing the commit
-                $tags = git tag --contains $commitHash
-
-                if ($tags) {
-                    foreach ($tag in $tags) {
-                        Write-Output "Checking tag: $tag"
-
-                        $tagDateOutput = git log -1 --format=%ai $tag 2>&1
-                        if ($tagDateOutput -match "fatal:") {
-                            Write-Output "PR #$($pr.number): Invalid tag - $tag"
-                            continue
-                        }
-
-                        if ($tagDateOutput) {
-                            $tagDate = [datetime]::Parse($tagDateOutput)
-                            Write-Output "Tag date: $tagDate"
-
-                            $timeDifference = $tagDate - $mergeDate
-                            Write-Output "Time difference for tag `${tag}: $timeDifference"
-                            Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
-
-                            if ($timeDifference.TotalHours -gt 0) {
-                                $totalStagingHours += $timeDifference.TotalHours
-                            } else {
-                                Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
-                            }
-                        } else {
-                            Write-Output "PR #$($pr.number): Tag date is null."
-                        }
+                    $tagDateOutput = git log -1 --format=%ai $tag 2>&1
+                    if ($tagDateOutput -match "fatal:") {
+                        Write-Output "PR #$($pr.number): Invalid tag - $tag"
+                        continue
                     }
+
+                    if ($tagDateOutput) {
+                        $tagDate = [datetime]::Parse($tagDateOutput)
+                        Write-Output "Tag date: $tagDate"
+
+                        $timeDifference = New-TimeSpan –Start $tagDate –End $mergedAt
+                        Write-Output "Time difference for tag `${tag}: $timeDifference"
+                        Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
+
+                        if ($timeDifference.TotalHours -gt 0) {
+                            $totalStagingHours += $timeDifference.TotalHours
+                        } else {
+                            Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
+                        }
+                    } else {
+                        Write-Output "PR #$($pr.number): Tag date is null."
+                    }
+                }
                 } else {
                     Write-Output "PR #$($pr.number): No tags found containing the commit."
                 }
