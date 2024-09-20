@@ -111,29 +111,52 @@ function Main ([string] $ownerRepo,
 
     # Get time between staging and prod deploys
     $totalStagingHours = 0
+    $prCounter = 0
+
     Foreach ($pr in $prsResponse) {
         Write-Output "Processing PR #$($pr.number)..."
         $commitHash = $pr.merge_commit_sha
         Write-Output "Commit hash: $commitHash"
 
         if ($commitHash) {
-            $mergeDate = git show -s --format=%ci $commitHash
-            if ($mergeDate) {
-                $mergeDate = [datetime]::Parse($mergeDate)
+            # Attempt to get the merge date
+            $mergeDateOutput = git show -s --format=%ci $commitHash 2>&1
+            if ($mergeDateOutput -match "fatal:") {
+                Write-Output "PR #$($pr.number): Invalid commit hash - $commitHash"
+                continue
+            }
+
+            if ($mergeDateOutput) {
+                $mergeDate = [datetime]::Parse($mergeDateOutput)
                 Write-Output "Merge date: $mergeDate"
 
                 $tagName = git tag --contains $commitHash | Select-Object -First 1
                 Write-Output "Tag name: $tagName"
 
                 if ($tagName) {
-                    $tagDate = git log -1 --format=%ai $tagName
-                    $tagDate = [datetime]::Parse($tagDate)
-                    Write-Output "Tag date: $tagDate"
+                    $tagDateOutput = git log -1 --format=%ai $tagName 2>&1
+                    if ($tagDateOutput -match "fatal:") {
+                        Write-Output "PR #$($pr.number): Invalid tag - $tagName"
+                        continue
+                    }
 
-                    $timeDifference = $tagDate - $mergeDate
-                    $totalStagingHours += $timeDifference.TotalHours
-                    $prCounter++
-                    Write-Output "PR #$($pr.number): Time between merge and tag: $timeDifference"
+                    if ($tagDateOutput) {
+                        $tagDate = [datetime]::Parse($tagDateOutput)
+                        Write-Output "Tag date: $tagDate"
+
+                        $timeDifference = $tagDate - $mergeDate
+                        Write-Output "Time difference: $timeDifference"
+                        Write-Output "Total hours: $($timeDifference.TotalHours)"
+
+                        if ($timeDifference.TotalHours -gt 0) {
+                            $totalStagingHours += $timeDifference.TotalHours
+                            $prCounter++
+                        } else {
+                            Write-Output "PR #$($pr.number): No positive time difference."
+                        }
+                    } else {
+                        Write-Output "PR #$($pr.number): Tag date is null."
+                    }
                 } else {
                     Write-Output "PR #$($pr.number): No tag found containing the commit."
                 }
@@ -144,6 +167,10 @@ function Main ([string] $ownerRepo,
             Write-Output "PR #$($pr.number): Commit hash is null."
         }
     }
+
+    Write-Output "Total staging hours: $totalStagingHours"
+    Write-Output "Processed PRs: $prCounter"
+
 
 
     #==========================================
