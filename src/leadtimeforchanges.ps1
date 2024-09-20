@@ -68,81 +68,83 @@ function Main ([string] $ownerRepo,
 
     $prCounter = 0
     $totalPRHours = 0
-    Foreach ($pr in $prsResponse) {
-    Write-Output "Processing PR #$($pr.number)..."
-    $commitHash = $pr.merge_commit_sha
-    Write-Output "Commit hash: $commitHash"
+    Foreach ($pr in $prsResponse){
 
-    if ($commitHash) {
-        $mergeDate = git show -s --format=%ci $commitHash
-        if ($mergeDate) {
-            $mergeDate = [datetime]::Parse($mergeDate)
-            Write-Output "Merge date: $mergeDate"
-
-            $tagName = git tag --contains $commitHash | Select-Object -First 1
-            Write-Output "Tag name: $tagName"
-
-            if ($tagName) {
-                $tagDate = git log -1 --format=%ai $tagName
-                $tagDate = [datetime]::Parse($tagDate)
-                Write-Output "Tag date: $tagDate"
-
-                $timeDifference = $tagDate - $mergeDate
-                $totalStagingHours += $timeDifference.TotalHours
-                $prCounter++
-                Write-Output "PR #$($pr.number): Time between merge and tag: $timeDifference"
-            } else {
-                Write-Output "PR #$($pr.number): No tag found containing the commit."
+        $mergedAt = $pr.merged_at
+        if ($mergedAt -ne $null -and $pr.merged_at -gt (Get-Date).AddDays(-$numberOfDays))
+        {
+            $prCounter++
+            $url2 = "$apiUrl/repos/$owner/$repo/pulls/$($pr.number)/commits?per_page=100";
+            if (!$authHeader)
+            {
+                #No authentication
+                $prCommitsresponse = Invoke-RestMethod -Uri $url2 -ContentType application/json -Method Get -SkipHttpErrorCheck -StatusCodeVariable "HTTPStatus"
             }
-        } else {
-            Write-Output "PR #$($pr.number): Merge date is null."
-        }
-    } else {
-        Write-Output "PR #$($pr.number): Commit hash is null."
+            else
+            {
+                $prCommitsresponse = Invoke-RestMethod -Uri $url2 -ContentType application/json -Method Get -Headers @{Authorization=($authHeader["Authorization"])} -SkipHttpErrorCheck -StatusCodeVariable "HTTPStatus" 
+            }
+            if ($prCommitsresponse.Length -ge 1)
+            {
+                if ($commitCountingMethod -eq "last")
+                {
+                    $startDate = $prCommitsresponse[$prCommitsresponse.Length-1].commit.committer.date
+                }
+                elseif ($commitCountingMethod -eq "first")
+                {
+                    $startDate = $prCommitsresponse[0].commit.committer.date
+                }
+                else
+                {
+                    Write-Output "Commit counting method '$commitCountingMethod' is unknown. Expecting 'first' or 'last'"
+                }
+            }
+        
+            if ($startDate -ne $null)
+            {
+                $prTimeDuration = New-TimeSpan –Start $startDate –End $mergedAt
+                $totalPRHours += $prTimeDuration.TotalHours
+                #Write-Host "$($pr.number) time duration in hours: $($prTimeDuration.TotalHours)"
+            }
         }
     }
-
 
     # Get time between staging and prod deploys
     $totalStagingHours = 0
     Foreach ($pr in $prsResponse) {
-    Write-Output "Processing PR #$($pr.number)..."
-    # Get the commit hash from the PR
-    $commitHash = $pr.merge_commit_sha
-    Write-Output "Commit hash: $commitHash"
+        Write-Output "Processing PR #$($pr.number)..."
+        $commitHash = $pr.merge_commit_sha
+        Write-Output "Commit hash: $commitHash"
 
-    # Get the merge date of the commit
-    $mergeDate = git show -s --format=%ci $commitHash
-    $mergeDate = [datetime]::Parse($mergeDate)
-    Write-Output "Merge date: $mergeDate"
+        if ($commitHash) {
+            $mergeDate = git show -s --format=%ci $commitHash
+            if ($mergeDate) {
+                $mergeDate = [datetime]::Parse($mergeDate)
+                Write-Output "Merge date: $mergeDate"
 
-    # Get the first tag containing the commit
-    $tagName = git tag --contains $commitHash | Select-Object -First 1
-    Write-Output "Tag name: $tagName"
+                $tagName = git tag --contains $commitHash | Select-Object -First 1
+                Write-Output "Tag name: $tagName"
 
-    if ($tagName) {
-        # Get the tag creation date
-        $tagDate = git log -1 --format=%ai $tagName
-        $tagDate = [datetime]::Parse($tagDate)
-        Write-Output "Tag date: $tagDate"
+                if ($tagName) {
+                    $tagDate = git log -1 --format=%ai $tagName
+                    $tagDate = [datetime]::Parse($tagDate)
+                    Write-Output "Tag date: $tagDate"
 
-        # Calculate the time difference between merge and tag
-        $timeDifference = $tagDate - $mergeDate
-        $totalStagingHours += $timeDifference.TotalHours
-        $prCounter++
-        
-        Write-Output "PR #$($pr.number): Time between merge and tag: $timeDifference"
-    } else {
-        Write-Output "PR #$($pr.number): No tag found containing the commit."
+                    $timeDifference = $tagDate - $mergeDate
+                    $totalStagingHours += $timeDifference.TotalHours
+                    $prCounter++
+                    Write-Output "PR #$($pr.number): Time between merge and tag: $timeDifference"
+                } else {
+                    Write-Output "PR #$($pr.number): No tag found containing the commit."
+                }
+            } else {
+                Write-Output "PR #$($pr.number): Merge date is null."
+            }
+        } else {
+            Write-Output "PR #$($pr.number): Commit hash is null."
         }
-    }   
-
-    if ($prCounter -gt 0) {
-        $averageStagingHours = $totalStagingHours / $prCounter
-        Write-Output "Average time between merge and tag for all PRs: $averagePRHours hours"
-    } else {
-        Write-Output "No PRs found with corresponding tags."
     }
+
 
     #==========================================
     #Get workflow definitions from github
