@@ -113,6 +113,7 @@ function Main ([string] $ownerRepo,
 
     # Get time between PR merge and release tags
     $totalStagingHours = 0
+    $releasedPrCount = 0
     foreach ($pr in $prsResponse) {
         Write-Output "Processing PR #$($pr.number)..."
         $commitHash = $pr.merge_commit_sha
@@ -146,6 +147,7 @@ function Main ([string] $ownerRepo,
 
                         if ($timeDifference.TotalHours -gt 0) {
                             $totalStagingHours += $timeDifference.TotalHours
+                            $releasedPrCount++
                         } else {
                             Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
                         }
@@ -167,7 +169,7 @@ function Main ([string] $ownerRepo,
 
     # Output total staging hours and number of PRs processed
     Write-Output "Total staging hours: $totalStagingHours"
-    Write-Output "Number of PRs processed with positive time differences: $prCounter"
+    Write-Output "Number of PRs processed with positive time differences: $releasedPrCount"
 
 
 
@@ -268,9 +270,9 @@ function Main ([string] $ownerRepo,
     
     #Aggregate the PR and workflow processing times to calculate the average number of hours 
     Write-Host "PR average time duration $($totalPRHours / $prCounter)"
-    Write-Host "Time commit spent in staging $($totalStagingHours / $prCounter)"
+    Write-Host "Time commit spent in staging $($totalStagingHours / $releasedPrCount)"
     Write-Host "Workflow average time duration $($totalAverageworkflowHours)"
-    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours / $prCounter) + ($totalStagingHours)
+    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours) + ($totalStagingHours / $releasedPrCount)
     Write-Host "Lead time for changes in hours: $leadTimeForChangesInHours"
 
     #==========================================
