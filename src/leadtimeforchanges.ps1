@@ -140,7 +140,7 @@ function Main ([string] $ownerRepo,
                         $tagDate = [datetime]::Parse($tagDateOutput)
                         Write-Output "Tag date: $tagDate"
 
-                        $timeDifference = New-TimeSpan –Start $tagDate –End $mergedAt
+                        $timeDifference = New-TimeSpan –Start $mergedAt –End $tagDate
                         Write-Output "Time difference for tag `${tag}: $timeDifference"
                         Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
 
@@ -264,7 +264,7 @@ function Main ([string] $ownerRepo,
     
     #Aggregate the PR and workflow processing times to calculate the average number of hours 
     Write-Host "PR average time duration $($totalPRHours / $prCounter)"
-    Write-Host "Time commit spent in staging $($totalStagingHours)"
+    Write-Host "Time commit spent in staging $($totalStagingHours / $prCounter)"
     Write-Host "Workflow average time duration $($totalAverageworkflowHours)"
     $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours) + ($totalStagingHours)
     Write-Host "Lead time for changes in hours: $leadTimeForChangesInHours"
