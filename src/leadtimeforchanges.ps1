@@ -149,6 +149,9 @@ function Main ([string] $ownerRepo,
                         } else {
                             Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
                         }
+
+                        # Stop processing further tags after the first one
+                        break
                     } else {
                         Write-Output "PR #$($pr.number): Tag date is null."
                     }
@@ -160,6 +163,7 @@ function Main ([string] $ownerRepo,
             Write-Output "PR #$($pr.number): Merge date is null."
         }
     }
+
 
     # Output total staging hours and number of PRs processed
     Write-Output "Total staging hours: $totalStagingHours"
