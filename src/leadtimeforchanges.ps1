@@ -122,7 +122,7 @@ function Main ([string] $ownerRepo,
 
         if ($commitHash) {
             # Get all tags containing the commit
-            git getch --tags
+            git fetch --tags
             $tags = git tag --contains $commitHash
             Write-Output "Tags found: $tags"
 
