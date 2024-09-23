@@ -270,7 +270,7 @@ function Main ([string] $ownerRepo,
     Write-Host "PR average time duration $($totalPRHours / $prCounter)"
     Write-Host "Time commit spent in staging $($totalStagingHours / $prCounter)"
     Write-Host "Workflow average time duration $($totalAverageworkflowHours)"
-    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours) + ($totalStagingHours)
+    $leadTimeForChangesInHours = ($totalPRHours / $prCounter) + ($totalAverageworkflowHours / $prCounter) + ($totalStagingHours)
     Write-Host "Lead time for changes in hours: $leadTimeForChangesInHours"
 
     #==========================================
