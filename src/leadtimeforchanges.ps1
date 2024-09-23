@@ -110,54 +110,62 @@ function Main ([string] $ownerRepo,
             }
         }
     }
-
+    
     # Get time between PR merge and release tags
     $totalStagingHours = 0
     foreach ($pr in $prsResponse) {
         Write-Output "Processing PR #$($pr.number)..."
-        $commitHash = $pr.merge_commit_sha
+        $mergeCommitHash = $pr.merge_commit_sha
         $mergeDate = $pr.merged_at
-        Write-Output "Commit hash: $commitHash"
+        Write-Output "Merge commit hash: $mergeCommitHash"
         Write-Output "Merge date: $mergeDate"
 
-        if ($commitHash) {
-            # Get all tags containing the commit
-            $tags = git tag --contains $commitHash
+        if ($mergeCommitHash) {
+            # Find the commit on the target branch that matches the PR merge commit
+            $targetCommitHash = git rev-list main | Select-String $mergeCommitHash
 
-            if ($tags) {
-                foreach ($tag in $tags) {
-                    Write-Output "Checking tag: $tag"
+            if ($targetCommitHash) {
+                # Get all tags containing the commit
+                $tags = git tag --contains $targetCommitHash
 
-                    $tagDateOutput = git log -1 --format=%ai $tag 2>&1
-                    if ($tagDateOutput -match "fatal:") {
-                        Write-Output "PR #$($pr.number): Invalid tag - $tag"
-                        continue
-                    }
+                if ($tags) {
+                    foreach ($tag in $tags) {
+                        Write-Output "Checking tag: $tag"
 
-                    if ($tagDateOutput) {
-                        $tagDate = [datetime]::Parse($tagDateOutput)
-                        Write-Output "Tag date: $tagDate"
-
-                        $timeDifference = New-TimeSpan –Start $tagDate –End $mergedAt
-                        Write-Output "Time difference for tag `${tag}: $timeDifference"
-                        Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
-
-                        if ($timeDifference.TotalHours -gt 0) {
-                            $totalStagingHours += $timeDifference.TotalHours
-                        } else {
-                            Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
+                        $tagDateOutput = git log -1 --format=%ai $tag 2>&1
+                        if ($tagDateOutput -match "fatal:") {
+                            Write-Output "PR #$($pr.number): Invalid tag - $tag"
+                            continue
                         }
-                    } else {
-                        Write-Output "PR #$($pr.number): Tag date is null."
+
+                        if ($tagDateOutput) {
+                            $tagDate = [datetime]::Parse($tagDateOutput)
+                            Write-Output "Tag date: $tagDate"
+
+                            $timeDifference = New-TimeSpan –Start $tagDate –End $mergeDate
+                            Write-Output "Time difference for tag `${tag}: $timeDifference"
+                            Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
+
+                            if ($timeDifference.TotalHours -gt 0) {
+                                $totalStagingHours += $timeDifference.TotalHours
+                            } else {
+                                Write-Output "PR #$($pr.number): No positive time difference for tag `${tag}."
+                            }
+                        } else {
+                            Write-Output "PR #$($pr.number): Tag date is null."
+                        }
                     }
+                } else {
+                    Write-Output "PR #$($pr.number): No tags found containing the commit."
                 }
             } else {
-                Write-Output "PR #$($pr.number): No tags found containing the commit."
+                Write-Output "PR #$($pr.number): No matching commit found on the target branch."
             }
         } else {
             Write-Output "PR #$($pr.number): Merge date is null."
         }
     }
+
 
     # Output total staging hours and number of PRs processed
     Write-Output "Total staging hours: $totalStagingHours"
