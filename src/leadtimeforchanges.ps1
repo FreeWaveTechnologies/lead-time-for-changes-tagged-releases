@@ -140,7 +140,7 @@ function Main ([string] $ownerRepo,
                         $tagDate = [datetime]::Parse($tagDateOutput)
                         Write-Output "Tag date: $tagDate"
 
-                        $timeDifference = New-TimeSpan –Start $mergedAt –End $tagDate
+                        $timeDifference = New-TimeSpan –Start $mergeDate –End $tagDate
                         Write-Output "Time difference for tag `${tag}: $timeDifference"
                         Write-Output "Total hours for tag `${tag}: $($timeDifference.TotalHours)"
 
